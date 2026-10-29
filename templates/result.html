@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Rekonsiliasi Bank</title>
+    <style>
+        :root {
+            --bg-main: #f1f5f9;
+            --card-bg: #ffffff;
+            --primary: #0284c7;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 0.75rem;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        .top-bar h1 { font-size: 1.75rem; color: var(--primary); }
+        .btn { background: var(--primary); color: #fff; padding: 0.625rem 1.25rem; border: none; border-radius: 0.5rem; cursor: pointer; text-decoration: none; font-weight: 600; font-size: 0.875rem; transition: background 0.2s; }
+        .btn:hover { background: #0369a1; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 2rem; }
+        .card h2 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.875rem 1rem; border-bottom: 1px solid var(--border); text-align: left; font-size: 0.875rem; }
+        th { background: #f8fafc; font-weight: 600; color: var(--text-muted); }
+        .badge { display: inline-block; padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: #fff; }
+        .badge-success { background: var(--success); }
+        .badge-danger { background: var(--danger); }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .empty-row { text-align: center; color: var(--text-muted); padding: 2rem; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>Hasil Rekonsiliasi Bank</h1>
+        <a href="/" class="btn">← Unggah File Lain</a>
+    </div>
+
+    <div class="card">
+        <h2>Transaksi Cocok <span class="badge badge-success">{{ matched|length }} Item</span></h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal Bank</th>
+                        <th>Keterangan Bank</th>
+                        <th class="text-right">Jumlah (Rp)</th>
+                        <th>Keterangan Buku Besar</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in matched %}
+                    <tr>
+                        <td>{{ item.bank.get('date', '-') }}</td>
+                        <td>{{ item.bank.get('desc', '-') }}</td>
+                        <td class="text-right">Rp {{ "{:,.2f}".format(item.bank.get('amount', 0)).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td>{{ item.ledger.get('desc', '-') }}</td>
+                        <td class="text-center"><span class="badge badge-success">Cocok</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="empty-row">Tidak ada transaksi yang cocok.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Belum Tercatat di Buku Besar <span class="badge badge-danger">{{ unmatched_bank|length }} Item</span></h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Keterangan Bank</th>
+                        <th class="text-right">Jumlah (Rp)</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in unmatched_bank %}
+                    <tr>
+                        <td>{{ item.get('date', '-') }}</td>
+                        <td>{{ item.get('desc', '-') }}</td>
+                        <td class="text-right">Rp {{ "{:,.2f}".format(item.get('amount', 0)).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td class="text-center"><span class="badge badge-danger">Kurang di Ledger</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-row">Semua mutasi bank sudah tercatat di buku besar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Belum Ada di Mutasi Bank (Outstanding) <span class="badge badge-danger">{{ unmatched_ledger|length }} Item</span></h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Keterangan Buku Besar</th>
+                        <th class="text-right">Jumlah (Rp)</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in unmatched_ledger %}
+                    <tr>
+                        <td>{{ item.get('date', '-') }}</td>
+                        <td>{{ item.get('desc', '-') }}</td>
+                        <td class="text-right">Rp {{ "{:,.2f}".format(item.get('amount', 0)).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td class="text-center"><span class="badge badge-danger">Belum Kliring</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-row">Tidak ada selisih di buku besar.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
